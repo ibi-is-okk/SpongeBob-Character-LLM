@@ -3,13 +3,7 @@
 LoRA fine-tune of an open-source LLM (default `unsloth/Llama-3.2-3B-Instruct`) to speak like SpongeBob, plus a themed Streamlit chat app with streaming replies.
 
 ## 1. Project Purpose & Non-Commercial Disclaimer
-This repository is an **educational, non-commercial research and learning project**. It exists to demonstrate LoRA fine-tuning, persona alignment, and building a chat UI. It is a parody/simulation, **not affiliated with, endorsed by, or sponsored by Nickelodeon or Paramount**. SpongeBob SquarePants and related names are trademarks of their owners.
-
-Please note:
-- **No transcripts, model weights, or artwork are included.** Show transcripts are copyrighted. You must supply data you have the right to use, and you should not redistribute the dataset or the resulting weights.
-- Do not publish, monetize, or publicly deploy the model or app.
-- The UI shows the disclaimer banner: *"Educational AI Simulation / Parody Project — Not Affiliated with Nickelodeon."* Keep it.
-- Background: drop your own image at `assets/background.jpg` (or `.png`) for personal use. Without one, the app uses a sky-to-seabed gradient.
+This repository is an **educational, non-commercial research and learning project**. It exists to demonstrate LoRA fine-tuning, persona alignment, and building a chat UI. It is a parody/simulation, 
 
 ## 2. Upstream Vision / Future Integration
 This character module is designed as the **core dialogue engine for a broader real-time multimodal agent project**. Planned scope:
