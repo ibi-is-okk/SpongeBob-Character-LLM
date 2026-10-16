@@ -1,14 +1,25 @@
 """Streamlit chat UI for the SpongeBob LoRA model.  Run: streamlit run app/app.py"""
-import base64, os, sys, threading
+import base64, json, os, sys, threading
 from pathlib import Path
 import streamlit as st
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "training"))
-from persona import SYSTEM_PROMPT
+from persona import SYSTEM_PROMPT, FEW_SHOT
 
 ADAPTER = os.environ.get("ADAPTER_PATH", str(ROOT / "models" / "spongebob-lora"))
+HIST = ROOT / "data" / "chat_history.json"
 BG = next(iter(sorted((ROOT / "assets").glob("background.*"))), None)  # supply your own image
+
+def load_history():
+    try:
+        return json.loads(HIST.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+def save_history(msgs):
+    HIST.parent.mkdir(parents=True, exist_ok=True)
+    HIST.write_text(json.dumps(msgs, ensure_ascii=False), encoding="utf-8")
 
 st.set_page_config(page_title="SpongeBob Chat (Parody)", page_icon="🧽", layout="centered")
 
@@ -54,27 +65,28 @@ def load_model():
 def stream_reply(history, temperature, max_new):
     from transformers import TextIteratorStreamer
     model, tok = load_model()
-    msgs = [{"role": "system", "content": SYSTEM_PROMPT}] + history
-    ids = tok.apply_chat_template(msgs, add_generation_prompt=True, return_tensors="pt").to(model.device)
+    msgs = [{"role": "system", "content": SYSTEM_PROMPT}] + FEW_SHOT + history
+    enc = tok.apply_chat_template(msgs, add_generation_prompt=True, return_tensors="pt", return_dict=True).to(model.device)
     streamer = TextIteratorStreamer(tok, skip_prompt=True, skip_special_tokens=True)
-    kw = dict(input_ids=ids, streamer=streamer, max_new_tokens=max_new, do_sample=True,
-              temperature=temperature, top_p=0.9, repetition_penalty=1.1)
+    kw = dict(**enc, streamer=streamer, pad_token_id=tok.pad_token_id or tok.eos_token_id, max_new_tokens=max_new, do_sample=True,
+              temperature=temperature, top_p=0.9, repetition_penalty=1.25, no_repeat_ngram_size=3)
     threading.Thread(target=model.generate, kwargs=kw, daemon=True).start()
     for piece in streamer:
         yield piece
 
 with st.sidebar:
     st.header("Settings")
-    temperature = st.slider("Creativity", 0.2, 1.3, 0.8, 0.05)
-    max_new = st.slider("Max reply length", 32, 400, 160, 16)
+    temperature = st.slider("Creativity", 0.2, 1.3, 0.5, 0.05)
+    max_new = st.slider("Max reply length", 32, 400, 80, 16)
     if st.button("New chat"):
-        st.session_state.messages = []; st.rerun()
+        st.session_state.messages = []; save_history([]); st.rerun()
 
 if not Path(ADAPTER).exists():
     st.error(f"No LoRA adapter found at `{ADAPTER}`. Train one (see README) or set ADAPTER_PATH.")
     st.stop()
 
-st.session_state.setdefault("messages", [])
+if "messages" not in st.session_state:
+    st.session_state.messages = load_history()
 for m in st.session_state.messages:
     with st.chat_message(m["role"], avatar="🧽" if m["role"] == "assistant" else "🙂"):
         st.markdown(m["content"])
@@ -86,3 +98,4 @@ if prompt := st.chat_input("Say something to SpongeBob..."):
     with st.chat_message("assistant", avatar="🧽"):
         reply = st.write_stream(stream_reply(st.session_state.messages[-12:], temperature, max_new))
     st.session_state.messages.append({"role": "assistant", "content": reply})
+    save_history(st.session_state.messages)
