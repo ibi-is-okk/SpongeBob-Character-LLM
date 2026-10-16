@@ -1,0 +1,22 @@
+# Model weights
+/models/
+*.bin
+*.safetensors
+*.gguf
+*.pt
+# Secrets
+.env
+# Datasets / caches (transcripts are copyrighted: never commit them)
+data/raw/
+data/processed/
+.cache/
+hf_cache/
+outputs/
+# Environments
+venv/
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+# Background art you supply yourself
+assets/background.*
